@@ -19,6 +19,11 @@ export type PublishMessage = {
   isRetain: boolean;
 };
 
+export type ReceivedMessage = {
+  topic: string;
+  payload: string;
+};
+
 export type SubscribeTopic = {
   name: string;
   qos: QoS;
@@ -38,7 +43,7 @@ export function MqttClient(props: MqttClientProps) {
   const [addSubscribeTopic, setAddSubscribeTopic] = useState<SubscribeTopic>(props.INITIAL_ADD_SUBSCRIBE_TOPIC);
   const [subscribingTopics, setSubscribingTopics] = useState<Map<string, SubscribeTopic>>(props.INITIAL_SUBSCRIBING_TOPICS);
 
-  const [receivedMessages, setReceivedMessages] = useState<Array<string>>([]);
+  const [receivedMessages, setReceivedMessages] = useState<Array<ReceivedMessage>>([]);
 
   const clientRef = useRef<MQTT.MqttClient|null>(null)
 
@@ -84,8 +89,11 @@ export function MqttClient(props: MqttClientProps) {
       });
 
       newClient.on('message', (topic: string, payload: Buffer, packet: IPacket) => {
-        let newMessage = `${topic} : ${payload.toString()}`;
-        console.debug(`onmessage: ${newMessage}`);
+        let newMessage: ReceivedMessage = {
+          topic: topic,
+          payload: payload.toString()
+        };
+        console.debug(`onmessage: ${JSON.stringify(newMessage)}`);
         setReceivedMessages(prevMessages => prevMessages.concat([newMessage]));
       });
 
@@ -280,7 +288,7 @@ export function MqttClient(props: MqttClientProps) {
         <section>
           <h2>received messages:</h2>
           <ul>
-            {receivedMessages.map((e,i) => <li key={i}>{e}</li>)}
+            {receivedMessages.map((e,i) => <li key={i}>{e.topic}: {e.payload}</li>)}
           </ul>
         </section>
       </section>
