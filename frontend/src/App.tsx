@@ -5,7 +5,7 @@ function App() {
 
   const DEFAULT_MQTT_CONNECTION : MqttConnection = {
     url: import.meta.env.VITE_MQTT_URL,
-    clientId: 'mqttjs_' + Math.random().toString(16).substr(2, 8),
+    clientId: 'OasizMqttClient_' + Math.random().toString(16).substr(2, 8),
     username: '',
     password: ''
   };
