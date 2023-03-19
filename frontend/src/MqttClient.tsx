@@ -1,4 +1,4 @@
-import { useRef, useState, FormEvent, ChangeEvent, Fragment } from 'react'
+import { useRef, useState, FormEvent, ChangeEvent, Fragment, forwardRef, useImperativeHandle } from 'react'
 import * as MQTT from 'mqtt';
 import { IPacket } from 'mqtt-packet';
 import './MqttClient.css'
@@ -37,7 +37,20 @@ export type MqttClientProps = {
   INITIAL_RECEIVED_MESSAGES: Array<ReceivedMessage>;
 }
 
-export function MqttClient(props: MqttClientProps) {
+const MqttClientInternal = (props: MqttClientProps, ref: any) => {
+  useImperativeHandle(ref, () => {
+    return {
+      getCurrentContext() : MqttClientProps {
+        return {
+          INITIAL_CONNECTION: mqttConnection,
+          INITIAL_PUBLISH_MESSAGE: publishMessage,
+          INITIAL_ADD_SUBSCRIBE_TOPIC: addSubscribeTopic,
+          INITIAL_SUBSCRIBING_TOPICS: subscribingTopics,
+          INITIAL_RECEIVED_MESSAGES: receivedMessages
+        }
+      }
+    }
+  });
 
   const [mqttConnection, setMqttConnection] = useState<MqttConnection>(props.INITIAL_CONNECTION);
   const [publishMessage, setPublishMessage] = useState<PublishMessage>(props.INITIAL_PUBLISH_MESSAGE);
@@ -52,6 +65,8 @@ export function MqttClient(props: MqttClientProps) {
   const [connectError, setConnectError] = useState('');
 
   const KEEPALIVE_TIME = 30;
+
+  ref = clientRef;
 
   const connect = () => {
     console.debug('start connect');
@@ -191,7 +206,7 @@ export function MqttClient(props: MqttClientProps) {
     setAddSubscribeTopic({...addSubscribeTopic, qos: toQos(rawSubscribeQos)});
   };
 
-  const handleSubmitAddSubscribeTopic = (event : ChangeEvent<HTMLFormElement>) => {
+  const handleSubmitAddSubscribeTopic = (event : FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     console.debug(`handleSubmitAddSubscribeTopic: ${addSubscribeTopic.name}, QoS: ${addSubscribeTopic.qos}`);
     if (clientRef.current) {
@@ -295,5 +310,7 @@ export function MqttClient(props: MqttClientProps) {
       </section>
     </div>
   )
-}
+};
+
+export const MqttClient = forwardRef(MqttClientInternal);
 

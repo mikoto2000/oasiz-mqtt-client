@@ -1,4 +1,4 @@
-import { useState, MouseEvent } from 'react'
+import { useRef, useState, ChangeEvent, MouseEvent, FormEvent } from 'react'
 import { MqttClient, QoS, MqttConnection, PublishMessage, SubscribeTopic, ReceivedMessage, MqttClientProps } from './MqttClient'
 import './App.css'
 
@@ -62,9 +62,43 @@ function App() {
     ],
   }
 
+  const mqttClient = useRef(null);
+
+  // State のリフトアップを行うと MqttClient 単体で使用することができなくなるため、
+  // Context の保存時に MqttClient に問い合わせる形をとっている。
+  // ...と思ったが、リフトアップしたうえで MqttClient を以下 4 パーツに分割する方が筋がいいかも？
+  // - Connecion
+  // - PublishMessage
+  // - SubscribingTopics(addSubTopic含む)
+  // - ReceivedMessages
+  // ちょっと考える。
+  const handleSaveContext = (event : FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    console.debug('handleSaveContext');
+
+    if (!mqttClient.current) return;
+    let currentMqttClient : any = mqttClient.current;
+    let currentContext : MqttClientProps = currentMqttClient.getCurrentContext();
+
+    let newContext = currentContext;
+    setMqttContexts((prevContexts) => {
+      let newMap = new Map<string, MqttClientProps>(prevContexts);
+      newMap.set(contextNameToAdd, newContext);
+      return newMap;
+    });
+  }
+
+  const handleChangeSaveContextName = (event : ChangeEvent<HTMLInputElement>) => {
+    let newValue = event.currentTarget.value || '';
+    console.debug(`handleChangeSaveContextName: ${newValue}`);
+    setContextNameToAdd(newValue);
+  };
+
   const [currentMqttContext, setCurrentMqttContext] = useState<MqttClientProps>(DEFAULT_MQTT_CONTEXT);
   const [mqttContexts, setMqttContexts] = useState<Map<string, MqttClientProps>>(
     new Map<string, MqttClientProps>([['pubuser', FIRST_MQTT_CONTEXT], ['subuser', SECOND_MQTT_CONTEXT]]));
+
+  const [contextNameToAdd, setContextNameToAdd] = useState('');
 
   const handleContextClick = (event: MouseEvent<HTMLAnchorElement>, contextName: string) => {
     event.preventDefault();
@@ -79,7 +113,11 @@ function App() {
       <ol>
         {[...mqttContexts.keys()].map((key) => <li key={key}><a href="#" onClick={(event) => handleContextClick(event, key)}>{key}</a></li>)}
       </ol>
-      <MqttClient key={JSON.stringify(currentMqttContext)} {...currentMqttContext}></MqttClient>
+      <form onSubmit={handleSaveContext}>
+        <label>Context Name: </label><input type="text" name="name" onChange={handleChangeSaveContextName} value={contextNameToAdd}></input>
+        <button type="submit" disabled={false}>save context</button>
+      </form>
+      <MqttClient ref={mqttClient} key={JSON.stringify(currentMqttContext)} {...currentMqttContext}></MqttClient>
     </div>
   )
 }
