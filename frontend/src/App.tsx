@@ -1,3 +1,4 @@
+import { serializeContext, deserializeContext } from './Util'
 import { useRef, useState, ChangeEvent, MouseEvent, FormEvent } from 'react'
 import { MqttClient, QoS, MqttConnection, PublishMessage, SubscribeTopic, ReceivedMessage, MqttClientProps } from './MqttClient'
 import './App.css'
@@ -64,6 +65,20 @@ function App() {
 
   const mqttClient = useRef(null);
 
+  const handleChangeContext = (event: MouseEvent<HTMLAnchorElement>, contextName: string) => {
+    event.preventDefault();
+    console.debug(`handleChangeContext: ${contextName}`);
+
+    let currentMqttClient : any = mqttClient.current;
+    let currentContext : MqttClientProps = currentMqttClient.getCurrentContext();
+    currentMqttClient.end();
+    saveContext(contextNameToAdd, currentContext);
+
+    let newContext = mqttContexts.get(contextName) || DEFAULT_MQTT_CONTEXT;
+    setCurrentMqttContext((prevContext) => newContext);
+    setContextNameToAdd(contextName);
+  }
+
   // State のリフトアップを行うと MqttClient 単体で使用することができなくなるため、
   // Context の保存時に MqttClient に問い合わせる形をとっている。
   // ...と思ったが、リフトアップしたうえで MqttClient を以下 4 パーツに分割する方が筋がいいかも？
@@ -79,11 +94,22 @@ function App() {
     if (!mqttClient.current) return;
     let currentMqttClient : any = mqttClient.current;
     let currentContext : MqttClientProps = currentMqttClient.getCurrentContext();
+    currentMqttClient.end();
 
-    let newContext = currentContext;
+    saveContext(contextNameToAdd, currentContext);
+  }
+
+  const saveContext = (contextName: string, newContext: MqttClientProps) => {
+    console.debug('saveContext');
+
+    if (contextName === '') return;
+
     setMqttContexts((prevContexts) => {
       let newMap = new Map<string, MqttClientProps>(prevContexts);
-      newMap.set(contextNameToAdd, newContext);
+      newMap.set(contextName, newContext);
+
+      localStorage.setItem('contexts', serializeContext(newMap));
+
       return newMap;
     });
   }
@@ -95,23 +121,24 @@ function App() {
   };
 
   const [currentMqttContext, setCurrentMqttContext] = useState<MqttClientProps>(DEFAULT_MQTT_CONTEXT);
-  const [mqttContexts, setMqttContexts] = useState<Map<string, MqttClientProps>>(
-    new Map<string, MqttClientProps>([['pubuser', FIRST_MQTT_CONTEXT], ['subuser', SECOND_MQTT_CONTEXT]]));
 
-  const [contextNameToAdd, setContextNameToAdd] = useState('');
+  const initialContexts = () => {
+    let contexts = localStorage.getItem('contexts');
+    return contexts ?
+      new Map<string, MqttClientProps>(deserializeContext(contexts))
+      :
+      new Map<string, MqttClientProps>([]);
 
-  const handleContextClick = (event: MouseEvent<HTMLAnchorElement>, contextName: string) => {
-    event.preventDefault();
-    console.debug(`handleContextClick: ${contextName}`);
-    let newContext = mqttContexts.get(contextName) || DEFAULT_MQTT_CONTEXT;
-    setCurrentMqttContext((prevContext) => newContext);
   }
+
+  const [mqttContexts, setMqttContexts] = useState<Map<string, MqttClientProps>>(initialContexts());
+  const [contextNameToAdd, setContextNameToAdd] = useState('');
 
   return (
     <div className="App">
       <h1>contexts:</h1>
       <ol>
-        {[...mqttContexts.keys()].map((key) => <li key={key}><a href="#" onClick={(event) => handleContextClick(event, key)}>{key}</a></li>)}
+        {[...mqttContexts.keys()].map((key) => <li key={key}><a href="#" onClick={(event) => handleChangeContext(event, key)}>{key}</a></li>)}
       </ol>
       <form onSubmit={handleSaveContext}>
         <label>Context Name: </label><input type="text" name="name" onChange={handleChangeSaveContextName} value={contextNameToAdd}></input>

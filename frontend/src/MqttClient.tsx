@@ -48,6 +48,9 @@ const MqttClientInternal = (props: MqttClientProps, ref: any) => {
           INITIAL_SUBSCRIBING_TOPICS: subscribingTopics,
           INITIAL_RECEIVED_MESSAGES: receivedMessages
         }
+      },
+      end() : void {
+        disconnect();
       }
     }
   });
@@ -66,55 +69,59 @@ const MqttClientInternal = (props: MqttClientProps, ref: any) => {
 
   const KEEPALIVE_TIME = 30;
 
-  ref = clientRef;
-
   const connect = () => {
     console.debug('start connect');
-    if (!isConnected) {
-      // クライアントインスタンスの作成
-      let newClient = MQTT.connect(mqttConnection.url, {
-        clientId: mqttConnection.clientId,
-        username: mqttConnection.username,
-        password: mqttConnection.password,
-        keepalive: KEEPALIVE_TIME
-      });
 
-      console.debug(`connecting ${mqttConnection.url}...`);
-
-      newClient.on('connect', () => {
-        console.debug(`connected ${mqttConnection.url}`);
-
-        subscribingTopics.forEach(topic => {
-          console.debug(`start subscribe "${JSON.stringify(topic)}"`);
-          newClient.subscribe(topic.name, { qos: topic.qos });
-        });
-
-        // エラーメッセージ削除
-        setConnectError((prevError) => '');
-        setIsConnected(true);
-      });
-
-      newClient.on('error', (error) => {
-        console.debug(`error: ${mqttConnection.url} connct failed. ${error.message}`);
-
-        // エラーメッセージ設定
-        setConnectError((prevError) => error.message);
-
-        // connect 時のエラーの際は、再接続せずに終了する
-        newClient.end();
-      });
-
-      newClient.on('message', (topic: string, payload: Buffer, packet: IPacket) => {
-        let newMessage: ReceivedMessage = {
-          topic: topic,
-          payload: payload.toString()
-        };
-        console.debug(`onmessage: ${JSON.stringify(newMessage)}`);
-        setReceivedMessages(prevMessages => prevMessages.concat([newMessage]));
-      });
-
-      clientRef.current = newClient;
+    if (isConnected) {
+      disconnect();
     }
+
+    // クライアントインスタンスの作成
+    console.debug('create new client.');
+    let newClient = MQTT.connect(mqttConnection.url, {
+      clientId: mqttConnection.clientId,
+      username: mqttConnection.username,
+      password: mqttConnection.password,
+      keepalive: KEEPALIVE_TIME
+    });
+
+    console.debug(`connecting ${mqttConnection.url}...`);
+
+    newClient.on('connect', () => {
+      console.debug(`connected ${mqttConnection.url}`);
+
+      subscribingTopics.forEach(topic => {
+        console.debug(`start subscribe "${JSON.stringify(topic)}"`);
+        newClient.subscribe(topic.name, { qos: topic.qos });
+      });
+
+      // エラーメッセージ削除
+      setConnectError((prevError) => '');
+      setIsConnected(true);
+    });
+
+    newClient.on('error', (error) => {
+      console.debug(`error: ${mqttConnection.url} connct failed. ${error.message}`);
+
+      // エラーメッセージ設定
+      setConnectError((prevError) => error.message);
+
+      // connect 時のエラーの際は、再接続せずに終了する
+      newClient.end();
+      setIsConnected(false);
+    });
+
+    newClient.on('message', (topic: string, payload: Buffer, packet: IPacket) => {
+      let newMessage: ReceivedMessage = {
+        topic: topic,
+        payload: payload.toString()
+      };
+      console.debug(`onmessage: ${JSON.stringify(newMessage)}`);
+      setReceivedMessages(prevMessages => prevMessages.concat([newMessage]));
+    });
+
+    clientRef.current = newClient;
+    console.log(clientRef.current);
   };
 
   const disconnect = () => {
