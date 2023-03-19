@@ -117,28 +117,11 @@ function App() {
     setIsConnected(false);
   };
 
-  const handleChangeMqttUrl = (event : ChangeEvent<HTMLInputElement>) => {
+  const handleChangeMqttConnection = (event : ChangeEvent<HTMLInputElement>) => {
     let newValue = event.currentTarget.value || '';
-    console.debug(`handleChangeMqttUrl: ${newValue}`);
-    setMqttConnection({...mqttConnection, url: newValue});
-  };
-
-  const handleChangeMqttClientId = (event : ChangeEvent<HTMLInputElement>) => {
-    let newValue = event.currentTarget.value || '';
-    console.debug(`handleChangeMqttClientId: ${newValue}`);
-    setMqttConnection({...mqttConnection, clientId: newValue});
-  };
-
-  const handleChangeMqttUserName = (event : ChangeEvent<HTMLInputElement>) => {
-    let newValue = event.currentTarget.value || '';
-    console.debug(`handleChangeMqttUserName: ${newValue}`);
-    setMqttConnection({...mqttConnection, username: newValue});
-  };
-
-  const handleChangeMqttPassword = (event : ChangeEvent<HTMLInputElement>) => {
-    let newValue = event.currentTarget.value || '';
-    // console.debug(`handleChangeMqttPassword: ${newValue}`);
-    setMqttConnection({...mqttConnection, password: newValue});
+    let name = event.currentTarget.name || '';
+    console.debug(`handleConnection: ${name}: ${newValue}`);
+    setMqttConnection({...mqttConnection, [name]: newValue});
   };
 
   const handleConnect = (event: FormEvent<HTMLFormElement>) => {
@@ -268,16 +251,16 @@ function App() {
               <></>
           }
         <form onSubmit={handleConnect}>
-          <label>URL: </label><input type="text" name="mqttUrl" onChange={handleChangeMqttUrl} value={mqttConnection.url}></input>
+          <label>URL: </label><input type="text" name="url" onChange={handleChangeMqttConnection} value={mqttConnection.url}></input>
           <button type="submit" disabled={false}>{
             isConnected ?
               'disconnect'
               :
               'connect'
           }</button>
-          <div><label>clientId: </label><input type="text" name="mqttClientId" onChange={handleChangeMqttClientId} value={mqttConnection.clientId}></input></div>
-          <div><label>username: </label><input type="text" name="mqttUserName" onChange={handleChangeMqttUserName} value={mqttConnection.username}></input></div>
-          <div><label>password: </label><input type="password" name="mqttPassword" onChange={handleChangeMqttPassword} value={mqttConnection.password}></input></div>
+          <div><label>clientId: </label><input type="text" name="clientId" onChange={handleChangeMqttConnection} value={mqttConnection.clientId}></input></div>
+          <div><label>username: </label><input type="text" name="username" onChange={handleChangeMqttConnection} value={mqttConnection.username}></input></div>
+          <div><label>password: </label><input type="password" name="password" onChange={handleChangeMqttConnection} value={mqttConnection.password}></input></div>
         </form>
       </section>
       <section>
