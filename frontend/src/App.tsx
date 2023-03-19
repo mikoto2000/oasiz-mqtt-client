@@ -7,26 +7,59 @@ function App() {
 
   type QoS = 0 | 1 | 2;
 
-  type SubscribingTopic = {
+  type MqttConnection = {
+    url: string;
+    clientId: string;
+    username: string;
+    password: string;
+  };
+
+  type PublishMessage = {
+    topic: string;
+    payload: string;
+    qos: QoS;
+    isRetain: boolean;
+  };
+
+  type SubscribeTopic = {
     name: string;
     qos: QoS;
   };
 
+  const DEFAULT_MQTT_CONNECTION : MqttConnection = {
+    url: import.meta.env.VITE_MQTT_URL,
+    clientId: 'mqttjs_' + Math.random().toString(16).substr(2, 8),
+    username: '',
+    password: ''
+  };
+
+  const DEFAULT_PUBLISH_MESSAGE : PublishMessage = {
+    topic: 'testtopic/1',
+    payload: '',
+    qos: 0,
+    isRetain: false
+  };
+
+  const DEFAULT_ADD_SUBSCRIBE_TOPIC : SubscribeTopic = {
+    name: "additional/subscribe/topic",
+    qos: 0
+  };
+
+  const [mqttConnection, setMqttConnection] = useState<MqttConnection>(DEFAULT_MQTT_CONNECTION);
+
+  const [publishMessage, setPublishMessage] = useState<PublishMessage>(DEFAULT_PUBLISH_MESSAGE);
+
+  const [addSubscribeTopic, setAddSubscribeTopic] = useState<SubscribeTopic>(DEFAULT_ADD_SUBSCRIBE_TOPIC);
+
+  const [subscribingTopics, setSubscribingTopics] = useState<Map<string, SubscribeTopic>>(
+          new Map<string, SubscribeTopic>([["testtopic/#", { name: "testtopic/#", qos: 0 }]]));
+
+  const [receivedMessages, setReceivedMessages] = useState<Array<string>>([]);
+
   const clientRef = useRef<MQTT.MqttClient|null>(null)
-  const [mqttUrl, setMqttUrl] = useState(import.meta.env.VITE_MQTT_URL)
-  const [mqttClientId, setMqttClientId] = useState('mqttjs_' + Math.random().toString(16).substr(2, 8))
-  const [mqttUserName, setMqttUserName] = useState('')
-  const [mqttPassword, setMqttPassword] = useState('')
-  const [isConnected, setIsConnected] = useState(false)
-  const [connectError, setConnectError] = useState('')
-  const [publishTopic, setPublishTopic] = useState("testtopic/1")
-  const [publishMessage, setPublishMessage] = useState("")
-  const [publishQos, setPublishQos] = useState<QoS>(0)
-  const [isRetain, setRetain] = useState(false)
-  const [receivedMessages, setReceivedMessages] = useState<Array<string>>([])
-  const [addSubscribingTopic, setAddSubscribingTopic] = useState("additional/subscribe/topic")
-  const [subscribeQos, setSubscribeQos] = useState<QoS>(0)
-  const [subscribingTopics, setSubscribingTopics] = useState<Map<string, SubscribingTopic>>(new Map<string, SubscribingTopic>([["testtopic/#", { name: "testtopic/#", qos: 0 }]]))
+
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectError, setConnectError] = useState('');
 
   const KEEPALIVE_TIME = 30;
 
@@ -34,17 +67,17 @@ function App() {
     console.debug('start connect');
     if (!isConnected) {
       // クライアントインスタンスの作成
-      let newClient = MQTT.connect(mqttUrl, {
-        clientId: mqttClientId,
-        username: mqttUserName,
-        password: mqttPassword,
+      let newClient = MQTT.connect(mqttConnection.url, {
+        clientId: mqttConnection.clientId,
+        username: mqttConnection.username,
+        password: mqttConnection.password,
         keepalive: KEEPALIVE_TIME
       });
 
-      console.debug(`connecting ${mqttUrl}...`);
+      console.debug(`connecting ${mqttConnection.url}...`);
 
       newClient.on('connect', () => {
-        console.debug(`connected ${mqttUrl}`);
+        console.debug(`connected ${mqttConnection.url}`);
 
         subscribingTopics.forEach(topic => {
           console.debug(`start subscribe "${JSON.stringify(topic)}"`);
@@ -57,7 +90,7 @@ function App() {
       });
 
       newClient.on('error', (error) => {
-        console.debug(`error: ${mqttUrl} connct failed. ${error.message}`);
+        console.debug(`error: ${mqttConnection.url} connct failed. ${error.message}`);
 
         // エラーメッセージ設定
         setConnectError((prevError) => error.message);
@@ -77,7 +110,7 @@ function App() {
   };
 
   const disconnect = () => {
-    console.debug(`disconnect: ${mqttUrl}`);
+    console.debug(`disconnect: ${mqttConnection.url}`);
     if (clientRef.current) {
       clientRef.current.end();
     }
@@ -85,32 +118,32 @@ function App() {
   };
 
   const handleChangeMqttUrl = (event : ChangeEvent<HTMLInputElement>) => {
-    let newValue = event.currentTarget.value;
+    let newValue = event.currentTarget.value || '';
     console.debug(`handleChangeMqttUrl: ${newValue}`);
-    setMqttUrl(newValue || '');
+    setMqttConnection({...mqttConnection, url: newValue});
   };
 
   const handleChangeMqttClientId = (event : ChangeEvent<HTMLInputElement>) => {
-    let newValue = event.currentTarget.value;
+    let newValue = event.currentTarget.value || '';
     console.debug(`handleChangeMqttClientId: ${newValue}`);
-    setMqttClientId(newValue || '');
+    setMqttConnection({...mqttConnection, clientId: newValue});
   };
 
   const handleChangeMqttUserName = (event : ChangeEvent<HTMLInputElement>) => {
-    let newValue = event.currentTarget.value;
+    let newValue = event.currentTarget.value || '';
     console.debug(`handleChangeMqttUserName: ${newValue}`);
-    setMqttUserName(newValue || '');
+    setMqttConnection({...mqttConnection, username: newValue});
   };
 
   const handleChangeMqttPassword = (event : ChangeEvent<HTMLInputElement>) => {
-    let newValue = event.currentTarget.value;
-    console.debug(`handleChangeMqttPassword: ${newValue}`);
-    setMqttPassword(newValue || '');
+    let newValue = event.currentTarget.value || '';
+    // console.debug(`handleChangeMqttPassword: ${newValue}`);
+    setMqttConnection({...mqttConnection, password: newValue});
   };
 
   const handleConnect = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    console.debug(`handleConnect: ${mqttUrl}`);
+    console.debug(`handleConnect: ${mqttConnection.url}`);
     if (isConnected) {
       disconnect();
     } else {
@@ -121,7 +154,7 @@ function App() {
   const handleChangePublishMessage = (event : ChangeEvent<HTMLTextAreaElement>) => {
     let newValue = event.currentTarget.value || '';
     console.debug(`handleChangePublishMessage: ${newValue}`);
-    setPublishMessage(newValue);
+    setPublishMessage({...publishMessage, payload: newValue});
   };
 
   const handleChangePublishQos = (event : ChangeEvent<HTMLInputElement>) => {
@@ -130,62 +163,67 @@ function App() {
     let rawPublishQos = Number(event.currentTarget.value);
 
     // TODO: エラー表示
-    setPublishQos(toQos(rawPublishQos));
+    setPublishMessage({...publishMessage, qos: toQos(rawPublishQos)});
   };
 
   const handleChangeRetain = (event : ChangeEvent<HTMLInputElement>) => {
     console.debug(`handleChangeRetain : ${event.currentTarget.checked}`);
-    setRetain(event.currentTarget.checked);
+    setPublishMessage({...publishMessage, isRetain: event.currentTarget.checked});
   };
 
   const handleChangeSendTopic = (event : ChangeEvent<HTMLInputElement>) => {
     let newValue = event.currentTarget.value || '';
     console.debug(`handldeChangePublishMessage: ${newValue}`);
-    setPublishTopic(newValue);
+    setPublishMessage({...publishMessage, topic: newValue});
   };
 
   const handlePublishMessage = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    console.debug('handlePublishMessage : ');
-    console.debug(event);
-    console.debug(`publishTopic: ${publishTopic}`);
-    console.debug(`publishMessage: ${publishMessage}`);
-    console.debug(`publishMessage QoS: ${publishQos}`);
-    console.debug(`publishMessage retain: ${isRetain}`);
-    console.debug(clientRef.current);
+    console.debug(`handlePublishMessage: ${JSON.stringify(publishMessage)}`);
     if (clientRef.current) {
       let options = {
-        QoS: publishQos,
-        retain: isRetain
+        QoS: publishMessage.qos,
+        retain: publishMessage.isRetain
       };
-      clientRef.current.publish(publishTopic, publishMessage, options)
+      clientRef.current.publish(publishMessage.topic, publishMessage.payload, options);
+    }
+  };
+
+  const handleRemoveRetainMessage = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    console.debug(`handleRemoveRetainMessage: ${JSON.stringify(publishMessage.topic)}`);
+    if (clientRef.current) {
+      let options = {
+        retain: true
+      };
+      clientRef.current.publish(publishMessage.topic, '', options);
     }
   };
 
   const handleChangeSubscribeTopic = (event : ChangeEvent<HTMLInputElement>) => {
     let newValue = event.currentTarget.value || '';
     console.debug(`handleChangeSubscribeTopic: ${newValue}`);
-    setAddSubscribingTopic(prevTopic => newValue);
+    setAddSubscribeTopic({...addSubscribeTopic, name: newValue});
   };
 
   const handleChangeSubscribeQos = (event : ChangeEvent<HTMLInputElement>) => {
     console.debug(`handleChangeSubscribeQos : ${event.currentTarget.value}`);
 
-    let rawPublishQos = Number(event.currentTarget.value);
+    let rawSubscribeQos = Number(event.currentTarget.value);
 
     // TODO: エラー表示
-    setSubscribeQos(toQos(rawPublishQos));
+    setAddSubscribeTopic({...addSubscribeTopic, qos: toQos(rawSubscribeQos)});
   };
 
   const handleSubmitAddSubscribeTopic = (event : ChangeEvent<HTMLFormElement>) => {
     event.preventDefault();
-    console.debug(`handleSubmitAddSubscribeTopic: ${addSubscribingTopic}, QoS: ${subscribeQos}`);
+    console.debug(`handleSubmitAddSubscribeTopic: ${addSubscribeTopic.name}, QoS: ${addSubscribeTopic.qos}`);
     if (clientRef.current) {
-      clientRef.current.subscribe(addSubscribingTopic, { qos: subscribeQos });
+      clientRef.current.subscribe(addSubscribeTopic.name, { qos: addSubscribeTopic.qos });
     }
     setSubscribingTopics(prevTopics => {
-      let newMap = new Map<string, SubscribingTopic>(prevTopics);
-      newMap.set(addSubscribingTopic, { name: addSubscribingTopic, qos: subscribeQos });
+      let newMap = new Map<string, SubscribeTopic>(prevTopics);
+      newMap.set(addSubscribeTopic.name, addSubscribeTopic);
       return newMap;
     });
   };
@@ -197,7 +235,7 @@ function App() {
       clientRef.current.unsubscribe(targetTopic);
     }
     setSubscribingTopics(prevTopics => {
-      let newMap = new Map<string, SubscribingTopic>(prevTopics);
+      let newMap = new Map<string, SubscribeTopic>(prevTopics);
       newMap.delete(targetTopic);
       return newMap;
     });
@@ -218,7 +256,7 @@ function App() {
         <div>
           <label>{
             isConnected ?
-              `connected to ${mqttUrl}.`
+              `connected to ${mqttConnection.url}.`
               :
               "not connected."
           }</label>
@@ -230,37 +268,40 @@ function App() {
               <></>
           }
         <form onSubmit={handleConnect}>
-          <label>URL: </label><input type="text" name="mqttUrl" onChange={handleChangeMqttUrl} value={mqttUrl}></input>
+          <label>URL: </label><input type="text" name="mqttUrl" onChange={handleChangeMqttUrl} value={mqttConnection.url}></input>
           <button type="submit" disabled={false}>{
             isConnected ?
               'disconnect'
               :
               'connect'
           }</button>
-          <div><label>clientId: </label><input type="text" name="mqttClientId" onChange={handleChangeMqttClientId} value={mqttClientId}></input></div>
-          <div><label>username: </label><input type="text" name="mqttUserName" onChange={handleChangeMqttUserName} value={mqttUserName}></input></div>
-          <div><label>password: </label><input type="password" name="mqttPassword" onChange={handleChangeMqttPassword} value={mqttPassword}></input></div>
+          <div><label>clientId: </label><input type="text" name="mqttClientId" onChange={handleChangeMqttClientId} value={mqttConnection.clientId}></input></div>
+          <div><label>username: </label><input type="text" name="mqttUserName" onChange={handleChangeMqttUserName} value={mqttConnection.username}></input></div>
+          <div><label>password: </label><input type="password" name="mqttPassword" onChange={handleChangeMqttPassword} value={mqttConnection.password}></input></div>
         </form>
       </section>
       <section>
         <h2>Publish</h2>
         <form onSubmit={handlePublishMessage}>
           <div>
-            <label>topic: </label><input type="text" onChange={handleChangeSendTopic} value={publishTopic}></input>
+            <label>topic: </label><input type="text" onChange={handleChangeSendTopic} value={publishMessage.topic}></input>
           </div>
           <div>
-            <label>message: </label><textarea onChange={handleChangePublishMessage} value={publishMessage}></textarea>
-            <label>QoS: </label><input type="number" min={0} max={2} onChange={handleChangePublishQos} value={publishQos}></input>
-            <label>retain: </label><input type="checkbox" onChange={handleChangeRetain} checked={isRetain}></input>
+            <label>message: </label><textarea onChange={handleChangePublishMessage} value={publishMessage.payload}></textarea>
+            <label>QoS: </label><input type="number" min={0} max={2} onChange={handleChangePublishQos} value={publishMessage.qos}></input>
+            <label>retain: </label><input type="checkbox" onChange={handleChangeRetain} checked={publishMessage.isRetain}></input>
           </div>
           <button type="submit" disabled={false}>publish</button>
+        </form>
+        <form onSubmit={handleRemoveRetainMessage}>
+          <button type="submit" disabled={false}>remove retain message</button>
         </form>
       </section>
       <section>
         <h2>Subscribe</h2>
         <form onSubmit={handleSubmitAddSubscribeTopic}>
-          <label>add subscribe topic: </label><input type="text" onChange={handleChangeSubscribeTopic} value={addSubscribingTopic}></input>
-          <label>QoS: </label><input type="number" min={0} max={2} onChange={handleChangeSubscribeQos} value={subscribeQos}></input>
+          <label>add subscribe topic: </label><input type="text" onChange={handleChangeSubscribeTopic} value={addSubscribeTopic.name}></input>
+          <label>QoS: </label><input type="number" min={0} max={2} onChange={handleChangeSubscribeQos} value={addSubscribeTopic.qos}></input>
           <button type="submit" disabled={false}>start subscribe</button>
         </form>
         <section>
