@@ -27,7 +27,7 @@ docker compose exec app bash -c "cd frontend; npm run dev -- --host"
 #### Reset EMQX data
 
 ```sh
-docker volume rm oasiz-mqtt-client-tmp_emqx_data
+docker volume rm oasiz-mqtt-client_emqx_data
 ```
 
 ### dev env info
