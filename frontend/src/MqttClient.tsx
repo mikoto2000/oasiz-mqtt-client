@@ -34,6 +34,7 @@ export type MqttClientProps = {
   INITIAL_PUBLISH_MESSAGE: PublishMessage;
   INITIAL_ADD_SUBSCRIBE_TOPIC: SubscribeTopic;
   INITIAL_SUBSCRIBING_TOPICS: Map<string, SubscribeTopic>;
+  INITIAL_RECEIVED_MESSAGES: Array<ReceivedMessage>;
 }
 
 export function MqttClient(props: MqttClientProps) {
@@ -43,7 +44,7 @@ export function MqttClient(props: MqttClientProps) {
   const [addSubscribeTopic, setAddSubscribeTopic] = useState<SubscribeTopic>(props.INITIAL_ADD_SUBSCRIBE_TOPIC);
   const [subscribingTopics, setSubscribingTopics] = useState<Map<string, SubscribeTopic>>(props.INITIAL_SUBSCRIBING_TOPICS);
 
-  const [receivedMessages, setReceivedMessages] = useState<Array<ReceivedMessage>>([]);
+  const [receivedMessages, setReceivedMessages] = useState<Array<ReceivedMessage>>(props.INITIAL_RECEIVED_MESSAGES);
 
   const clientRef = useRef<MQTT.MqttClient|null>(null)
 

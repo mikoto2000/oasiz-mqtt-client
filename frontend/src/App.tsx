@@ -1,4 +1,4 @@
-import { MqttClient, QoS, MqttConnection, PublishMessage, SubscribeTopic, MqttClientProps } from './MqttClient'
+import { MqttClient, QoS, MqttConnection, PublishMessage, SubscribeTopic, ReceivedMessage, MqttClientProps } from './MqttClient'
 import './App.css'
 
 function App() {
@@ -25,12 +25,15 @@ function App() {
   const DEFAULT_SUBSCRIBING_TOPIC : Map<string, SubscribeTopic> =
       new Map<string, SubscribeTopic>([["testtopic/#", { name: "testtopic/#", qos: 0 }]]);
 
+  const DEFAULT_RECEIVED_MESSAGES : Array<ReceivedMessage> = [];
+
 
   const mqttClientProps: MqttClientProps = {
     INITIAL_CONNECTION: DEFAULT_MQTT_CONNECTION,
     INITIAL_PUBLISH_MESSAGE: DEFAULT_PUBLISH_MESSAGE,
     INITIAL_ADD_SUBSCRIBE_TOPIC: DEFAULT_ADD_SUBSCRIBE_TOPIC,
-    INITIAL_SUBSCRIBING_TOPICS: DEFAULT_SUBSCRIBING_TOPIC
+    INITIAL_SUBSCRIBING_TOPICS: DEFAULT_SUBSCRIBING_TOPIC,
+    INITIAL_RECEIVED_MESSAGES: DEFAULT_RECEIVED_MESSAGES,
   }
 
   return (
