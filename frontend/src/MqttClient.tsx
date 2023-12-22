@@ -1,5 +1,5 @@
 import { useRef, useState, FormEvent, ChangeEvent, Fragment, forwardRef, useImperativeHandle } from 'react'
-import * as MQTT from 'mqtt';
+import mqtt from 'mqtt';
 import { IPacket } from 'mqtt-packet';
 import './MqttClient.css'
 
@@ -62,7 +62,7 @@ const MqttClientInternal = (props: MqttClientProps, ref: any) => {
 
   const [receivedMessages, setReceivedMessages] = useState<Array<ReceivedMessage>>(props.INITIAL_RECEIVED_MESSAGES);
 
-  const clientRef = useRef<MQTT.MqttClient|null>(null)
+  const clientRef = useRef<mqtt.MqttClient|null>(null)
 
   const [isConnected, setIsConnected] = useState(false);
   const [connectError, setConnectError] = useState('');
@@ -78,7 +78,7 @@ const MqttClientInternal = (props: MqttClientProps, ref: any) => {
 
     // クライアントインスタンスの作成
     console.debug('create new client.');
-    let newClient = MQTT.connect(mqttConnection.url, {
+    let newClient = mqtt.connect(mqttConnection.url, {
       clientId: mqttConnection.clientId,
       username: mqttConnection.username,
       password: mqttConnection.password,

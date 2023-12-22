@@ -1,6 +1,6 @@
-import * as MQTT from 'mqtt';
+import mqtt from 'mqtt';
 
-let newClient = MQTT.connect(
+let newClient = mqtt.connect(
   'ws://host.docker.internal:9090/mqtt',
   {
     username: 'myuser',
